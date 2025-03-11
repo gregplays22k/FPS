@@ -1,3 +1,8 @@
+// Import GSAP for animations
+const gsapScript = document.createElement("script");
+gsapScript.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
+document.head.appendChild(gsapScript);
+
 // Set up Three.js scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -108,10 +113,15 @@ document.addEventListener('mousemove', (event) => {
   }
 });
 
-// Shooting
+// Shooting with Gun Animation
 document.addEventListener('click', shoot);
 
 function shoot() {
+  let gun = weapons[currentWeaponIndex];
+
+  // Gun recoil animation
+  gsap.to(gun.position, { z: gun.position.z - 0.2, duration: 0.1, yoyo: true, repeat: 1 });
+
   let bullet = new THREE.Mesh(
     new THREE.SphereGeometry(0.1, 8, 8),
     new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffaa00 })
@@ -119,18 +129,19 @@ function shoot() {
   bullet.position.copy(camera.position);
   let direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
-  bullet.velocity = direction.multiplyScalar(2); // Faster bullets
+  bullet.velocity = direction.multiplyScalar(2);
   bullets.push(bullet);
   scene.add(bullet);
 }
 
-// Enemies
+// Enemies as Sprites
 let enemies = [];
+const enemyTexture = new THREE.TextureLoader().load("enemy.png"); // Load your enemy sprite
+
 for (let i = 0; i < 5; i++) {
-  let enemy = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 2, 1),
-    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 1 })
-  );
+  let enemyMaterial = new THREE.SpriteMaterial({ map: enemyTexture });
+  let enemy = new THREE.Sprite(enemyMaterial);
+  enemy.scale.set(2, 3, 1);
   enemy.position.set(Math.random() * 20 - 10, 1, Math.random() * 20 - 10);
   enemy.health = 3;
   enemies.push(enemy);
@@ -153,10 +164,13 @@ function enemyAI() {
       );
       enemyBullet.position.copy(enemy.position);
       let bulletDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
-      enemyBullet.velocity = bulletDirection.multiplyScalar(1.5); // Increased speed
+      enemyBullet.velocity = bulletDirection.multiplyScalar(1.5);
       enemyBullets.push(enemyBullet);
       scene.add(enemyBullet);
     }
+
+    // Ensure enemy always faces the player
+    enemy.lookAt(player.position);
   });
 }
 
