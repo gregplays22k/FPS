@@ -129,6 +129,22 @@ function shoot() {
   scene.add(bullet);
 }
 
+// Enemy AI with slower fire rate
+let enemyFireRate = 2000; // Fire every 2 seconds
+function enemyShoot(enemy) {
+  setInterval(() => {
+    let enemyBullet = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xff0000 })
+    );
+    enemyBullet.position.copy(enemy.position);
+    let direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+    enemyBullet.velocity = direction.multiplyScalar(0.5);
+    enemyBullets.push(enemyBullet);
+    scene.add(enemyBullet);
+  }, enemyFireRate);
+}
+
 function animate() {
   requestAnimationFrame(animate);
 
