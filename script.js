@@ -66,8 +66,11 @@ function switchWeapon(index) {
 
 switchWeapon(0);
 
-// Player Health
+// Player Health with Invincibility Timer
 let playerHealth = 100;
+let invincible = true;
+setTimeout(() => invincible = false, 2000); // Player invincible for first 2 seconds
+
 const healthDisplay = document.getElementById("healthDisplay");
 
 function updateHealthDisplay() {
@@ -130,9 +133,10 @@ function shoot() {
 }
 
 // Enemy AI with slower fire rate
-let enemyFireRate = 2000; // Fire every 2 seconds
+let enemyFireRate = 4000; // Fire every 4 seconds
 function enemyShoot(enemy) {
   setInterval(() => {
+    if (invincible) return;
     let enemyBullet = new THREE.Mesh(
       new THREE.SphereGeometry(0.1, 8, 8),
       new THREE.MeshStandardMaterial({ color: 0xff0000 })
