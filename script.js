@@ -3,6 +3,9 @@ const gsapScript = document.createElement("script");
 gsapScript.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
 document.head.appendChild(gsapScript);
 
+// Initialize Socket.io for multiplayer
+const socket = io();
+
 // Set up Three.js scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -50,13 +53,7 @@ function createGun(color, size, positionZ) {
 }
 
 weapons.push(createGun(0x888888, { x: 0.2, y: 0.2, z: 0.6 }, -0.5)); // Pistol
-weapons.push(createGun(0x333333, { x: 0.3, y: 0.3, z: 1.2 }, -0.8)); // Rifle
-weapons.push(createGun(0x222222, { x: 0.4, y: 0.4, z: 1.5 }, -1.2)); // Shotgun
-
-function updateWeaponDisplay() {
-  let weaponNames = ["Pistol", "Rifle", "Shotgun"];
-  weaponDisplay.innerText = `Weapon: ${weaponNames[currentWeaponIndex]}`;
-}
+switchWeapon(0);
 
 function switchWeapon(index) {
   weapons.forEach((gun, i) => gun.visible = (i === index));
@@ -64,12 +61,14 @@ function switchWeapon(index) {
   updateWeaponDisplay();
 }
 
-switchWeapon(0);
+function updateWeaponDisplay() {
+  weaponDisplay.innerText = `Weapon: Pistol`;
+}
 
 // Player Health with Invincibility Timer
 let playerHealth = 100;
 let invincible = true;
-setTimeout(() => invincible = false, 2000); // Player invincible for first 2 seconds
+setTimeout(() => invincible = false, 2000); // Invincible for first 2 seconds
 
 const healthDisplay = document.getElementById("healthDisplay");
 
@@ -79,19 +78,49 @@ function updateHealthDisplay() {
 
 updateHealthDisplay();
 
+// Multiplayer system
+let otherPlayers = {};
+
+socket.on('currentPlayers', (players) => {
+  for (let id in players) {
+    if (id !== socket.id) addPlayer(id, players[id]);
+  }
+});
+
+socket.on('newPlayer', ({ id, position }) => addPlayer(id, position));
+
+socket.on('updatePlayer', ({ id, position }) => {
+  if (otherPlayers[id]) {
+    otherPlayers[id].position.set(position.x, position.y, position.z);
+  }
+});
+
+socket.on('removePlayer', (id) => {
+  if (otherPlayers[id]) {
+    scene.remove(otherPlayers[id]);
+    delete otherPlayers[id];
+  }
+});
+
+function addPlayer(id, position) {
+  let newPlayer = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 1),
+    new THREE.MeshStandardMaterial({ color: 0x0000ff })
+  );
+  newPlayer.position.set(position.x, position.y, position.z);
+  scene.add(newPlayer);
+  otherPlayers[id] = newPlayer;
+}
+
 // Player Controls
 let keys = { forward: false, backward: false, left: false, right: false };
 let bullets = [];
-let enemyBullets = [];
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'w') keys.forward = true;
   if (event.key === 's') keys.backward = true;
   if (event.key === 'a') keys.left = true;
   if (event.key === 'd') keys.right = true;
-  if (event.key === '1') switchWeapon(0);
-  if (event.key === '2') switchWeapon(1);
-  if (event.key === '3') switchWeapon(2);
 });
 
 document.addEventListener('keyup', (event) => {
@@ -115,6 +144,7 @@ document.addEventListener('mousemove', (event) => {
   }
 });
 
+// Shooting Mechanic
 function shoot() {
   let gun = weapons[currentWeaponIndex];
 
@@ -132,23 +162,33 @@ function shoot() {
   scene.add(bullet);
 }
 
-// Enemy AI with slower fire rate
-let enemyFireRate = 4000; // Fire every 4 seconds
-function enemyShoot(enemy) {
-  setInterval(() => {
-    if (invincible) return;
-    let enemyBullet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 8, 8),
-      new THREE.MeshStandardMaterial({ color: 0xff0000 })
-    );
-    enemyBullet.position.copy(enemy.position);
-    let direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
-    enemyBullet.velocity = direction.multiplyScalar(0.5);
-    enemyBullets.push(enemyBullet);
-    scene.add(enemyBullet);
-  }, enemyFireRate);
+// Send player position to server
+function sendPlayerPosition() {
+  socket.emit('playerMove', {
+    x: player.position.x,
+    y: player.position.y,
+    z: player.position.z
+  });
 }
+setInterval(sendPlayerPosition, 100);
 
+// Chat System
+const chatInput = document.getElementById('chatInput');
+const chatBox = document.getElementById('chatBox');
+
+chatInput.addEventListener('keypress', (event) => {
+  if (event.key === 'Enter') {
+    let message = chatInput.value;
+    socket.emit('chatMessage', message);
+    chatInput.value = '';
+  }
+});
+
+socket.on('chatMessage', ({ id, message }) => {
+  chatBox.innerHTML += `<p><strong>${id}:</strong> ${message}</p>`;
+});
+
+// Game loop
 function animate() {
   requestAnimationFrame(animate);
 
@@ -158,6 +198,7 @@ function animate() {
   if (keys.right) player.translateX(0.1);
 
   bullets.forEach((bullet) => bullet.position.add(bullet.velocity));
+
   renderer.render(scene, camera);
 }
 
