@@ -7,8 +7,12 @@ document.body.appendChild(renderer.domElement);
 // Player setup
 let player = new THREE.Object3D();
 scene.add(player);
-camera.position.set(0, 1.6, 0);
-player.add(camera);
+
+let pitchObject = new THREE.Object3D(); // Handles up/down rotation
+pitchObject.add(camera);
+player.add(pitchObject);
+
+camera.position.set(0, 1.6, 0); // Camera height
 
 // Floor
 const floor = new THREE.Mesh(
@@ -80,39 +84,59 @@ document.addEventListener('keyup', (event) => {
   if (event.key === 'd') keys.right = false;
 });
 
-// Mouse Look
-let pitchObject = new THREE.Object3D();
-pitchObject.add(camera);
-player.add(pitchObject);
-
+// Mouse Look and Turning
 document.addEventListener('click', () => {
   document.body.requestPointerLock();
-  shoot();
 });
 
 document.addEventListener('mousemove', (event) => {
   if (document.pointerLockElement === document.body) {
     let sensitivity = 0.002;
-    player.rotation.y -= event.movementX * sensitivity; // Yaw rotation
-    pitchObject.rotation.x -= event.movementY * sensitivity; // Pitch rotation
-    pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x)); // Limit vertical look
+
+    // Rotate the player (Yaw - Turning left/right)
+    player.rotation.y -= event.movementX * sensitivity;
+
+    // Rotate the camera (Pitch - Looking up/down)
+    pitchObject.rotation.x -= event.movementY * sensitivity;
+    pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x));
   }
 });
 
-// Shooting
+// Create a bullet that stays with the player until shot
+let heldBullet = new THREE.Mesh(
+  new THREE.SphereGeometry(0.1, 8, 8),
+  new THREE.MeshBasicMaterial({ color: 0xffff00 })
+);
+heldBullet.position.set(0.3, -0.2, -0.5); // Position near the gun
+camera.add(heldBullet);
+
+document.addEventListener('click', () => {
+  if (document.pointerLockElement === document.body) {
+    shoot();
+  }
+});
+
 function shoot() {
-  let bullet = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffff00 })
-  );
-  bullet.position.copy(camera.position);
+  if (!heldBullet) return; // Ensure we have a bullet to shoot
+
+  // Detach the bullet from the camera and shoot it
+  camera.remove(heldBullet);
+  scene.add(heldBullet);
+
   let direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
   let bulletSpeed = currentWeaponIndex === 0 ? 0.5 : currentWeaponIndex === 1 ? 0.7 : 0.3;
-  bullet.velocity = direction.multiplyScalar(bulletSpeed);
-  bullets.push(bullet);
-  scene.add(bullet);
+  heldBullet.velocity = direction.multiplyScalar(bulletSpeed);
+  bullets.push(heldBullet);
+
+  // Create a new bullet for holding
+  heldBullet = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffff00 })
+  );
+  heldBullet.position.set(0.3, -0.2, -0.5);
+  camera.add(heldBullet);
 }
 
 // Enemies
@@ -165,29 +189,15 @@ function updateBullets() {
       }
     });
   });
-
-  enemyBullets.forEach((bullet, index) => {
-    bullet.position.add(bullet.velocity);
-    if (bullet.position.distanceTo(player.position) < 1) {
-      playerHealth -= 10;
-      scene.remove(bullet);
-      enemyBullets.splice(index, 1);
-      updateHealthDisplay();
-      if (playerHealth <= 0) {
-        alert("Game Over! You died.");
-        location.reload();
-      }
-    }
-  });
 }
 
 function animate() {
   requestAnimationFrame(animate);
 
-  if (keys.forward) player.position.z -= 0.1;
-  if (keys.backward) player.position.z += 0.1;
-  if (keys.left) player.position.x -= 0.1;
-  if (keys.right) player.position.x += 0.1;
+  if (keys.forward) player.translateZ(-0.1);
+  if (keys.backward) player.translateZ(0.1);
+  if (keys.left) player.translateX(-0.1);
+  if (keys.right) player.translateX(0.1);
 
   enemyAI();
   updateBullets();
