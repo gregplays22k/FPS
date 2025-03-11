@@ -107,9 +107,11 @@
     updateHealthDisplay();
 
     // Player Controls
-    let keys = { forward: false, backward: false, left: false, right: false };
+    let keys = { forward: false, backward: false, left: false, right: false, clearBullets: false };
     let bullets = [];
     let enemyBullets = [];
+    let enemies = []; // Array to store enemies
+    let stickyBullets = []; // Bullets that stick to player
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'w') keys.forward = true;
@@ -119,6 +121,7 @@
       if (event.key === '1') switchWeapon(0);
       if (event.key === '2') switchWeapon(1);
       if (event.key === '3') switchWeapon(2);
+      if (event.key === ' ') keys.clearBullets = true;
     });
 
     document.addEventListener('keyup', (event) => {
@@ -126,6 +129,7 @@
       if (event.key === 's') keys.backward = false;
       if (event.key === 'a') keys.left = false;
       if (event.key === 'd') keys.right = false;
+      if (event.key === ' ') keys.clearBullets = false;
     });
 
     document.addEventListener('click', () => {
@@ -157,6 +161,7 @@
 
     // Enemy AI with slower fire rate
     let enemyFireRate = 5000; // Fire every 5 seconds
+
     function enemyShoot(enemy) {
       setInterval(() => {
         if (invincible) return;
@@ -172,19 +177,21 @@
       }, enemyFireRate);
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-
-      if (keys.forward) player.translateZ(-0.1);
-      if (keys.backward) player.translateZ(0.1);
-      if (keys.left) player.translateX(-0.1);
-      if (keys.right) player.translateX(0.1);
-
-      bullets.forEach((bullet) => bullet.position.add(bullet.velocity));
-      renderer.render(scene, camera);
+    // Enemy Creation
+    function createEnemy(x, z) {
+      let enemy = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 2, 1),
+        new THREE.MeshStandardMaterial({ color: 0x800080 })
+      );
+      enemy.position.set(x, 1, z);
+      scene.add(enemy);
+      enemies.push(enemy);
+      enemyShoot(enemy); // Start enemy shooting
     }
 
-    animate();
-  </script>
-</body>
-</html>
+    function spawnEnemiesAroundPlayer() {
+      const distance = 15; // Distance from player
+      const angleStep = (2 * Math.PI) / 8; // 8 enemies around the player
+      for (let i = 0; i < 8; i++) {
+        const angle = i * angleStep;
+        const x =
