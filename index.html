@@ -159,6 +159,19 @@
       scene.add(bullet);
     }
 
+    // Make bullets follow the player
+    function updateBullets() {
+      bullets.forEach((bullet, index) => {
+        bullet.position.add(bullet.velocity);
+        enemies.forEach((enemy) => {
+          if (bullet.position.distanceTo(enemy.position) < 1) {
+            scene.remove(bullet);
+            bullets.splice(index, 1);
+          }
+        });
+      });
+    }
+
     // Enemy AI with slower fire rate
     let enemyFireRate = 5000; // Fire every 5 seconds
 
@@ -194,4 +207,39 @@
       const angleStep = (2 * Math.PI) / 8; // 8 enemies around the player
       for (let i = 0; i < 8; i++) {
         const angle = i * angleStep;
-        const x =
+        const x = Math.cos(angle) * distance;
+        const z = Math.sin(angle) * distance;
+        createEnemy(x, z);
+      }
+    }
+
+    spawnEnemiesAroundPlayer();
+
+    function update() {
+      if (keys.forward) player.translateZ(-0.1);
+      if (keys.backward) player.translateZ(0.1);
+      if (keys.left) player.translateX(-0.1);
+      if (keys.right) player.translateX(0.1);
+
+      if (!invincible) {
+        stickyBullets.forEach((bullet) => {
+          if (bullet.position.distanceTo(player.position) < 1) {
+            playerHealth -= 10;
+            updateHealthDisplay();
+            if (playerHealth <= 0) {
+              alert("Game Over");
+              window.location.reload();
+            }
+          }
+        });
+      }
+
+      updateBullets();
+      renderer.render(scene, camera);
+      requestAnimationFrame(update);
+    }
+
+    update();
+  </script>
+</body>
+</html>
