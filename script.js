@@ -4,7 +4,7 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Player
+// Player setup
 let player = new THREE.Object3D();
 scene.add(player);
 camera.position.set(0, 1.6, 0);
@@ -50,9 +50,18 @@ function switchWeapon(index) {
 
 switchWeapon(0);
 
+// Player Health
+let playerHealth = 100;
+const healthDisplay = document.getElementById("healthDisplay");
+
+function updateHealthDisplay() {
+  healthDisplay.innerText = `Health: ${playerHealth}`;
+}
+
 // Player Controls
 let keys = { forward: false, backward: false, left: false, right: false };
 let bullets = [];
+let enemyBullets = [];
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'w') keys.forward = true;
@@ -72,6 +81,7 @@ document.addEventListener('keyup', (event) => {
 });
 
 document.addEventListener('click', () => {
+  document.body.requestPointerLock();
   shoot();
 });
 
@@ -84,19 +94,74 @@ function shoot() {
   let direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
-  // Different bullet speed for different weapons
   let bulletSpeed = currentWeaponIndex === 0 ? 0.5 : currentWeaponIndex === 1 ? 0.7 : 0.3;
   bullet.velocity = direction.multiplyScalar(bulletSpeed);
   bullets.push(bullet);
   scene.add(bullet);
 }
 
+// Enemies
+let enemies = [];
+for (let i = 0; i < 3; i++) {
+  let enemy = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 1),
+    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+  );
+  enemy.position.set(Math.random() * 20 - 10, 1, Math.random() * 20 - 10);
+  enemy.health = 3;
+  enemies.push(enemy);
+  scene.add(enemy);
+}
+
+function enemyAI() {
+  enemies.forEach(enemy => {
+    let playerDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+    let distance = enemy.position.distanceTo(player.position);
+
+    if (distance > 3) {
+      enemy.position.addScaledVector(playerDirection, 0.02);
+    }
+
+    if (distance < 10 && Math.random() < 0.02) {
+      let enemyBullet = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      );
+      enemyBullet.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
+      let bulletDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+      enemyBullet.velocity = bulletDirection.multiplyScalar(0.3);
+      enemyBullets.push(enemyBullet);
+      scene.add(enemyBullet);
+    }
+  });
+}
+
 function updateBullets() {
   bullets.forEach((bullet, index) => {
     bullet.position.add(bullet.velocity);
-    if (bullet.position.distanceTo(camera.position) > 50) {
+    enemies.forEach(enemy => {
+      if (bullet.position.distanceTo(enemy.position) < 1) {
+        enemy.health -= 1;
+        scene.remove(bullet);
+        bullets.splice(index, 1);
+        if (enemy.health <= 0) {
+          scene.remove(enemy);
+        }
+      }
+    });
+  });
+
+  enemyBullets.forEach((bullet, index) => {
+    bullet.position.add(bullet.velocity);
+    if (bullet.position.distanceTo(player.position) < 1) {
+      playerHealth -= 10;
       scene.remove(bullet);
-      bullets.splice(index, 1);
+      enemyBullets.splice(index, 1);
+      updateHealthDisplay();
+      if (playerHealth <= 0) {
+        alert("Game Over! You died.");
+        location.reload();
+      }
     }
   });
 }
@@ -109,6 +174,7 @@ function animate() {
   if (keys.left) player.position.x -= 0.1;
   if (keys.right) player.position.x += 0.1;
 
+  enemyAI();
   updateBullets();
   renderer.render(scene, camera);
 }
