@@ -4,11 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D FPS Game</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    #healthDisplay, #weaponDisplay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    #weaponDisplay {
+      top: 50px;
+    }
+  </style>
 </head>
 <body>
   <div id="healthDisplay">Health: 100</div>
   <div id="weaponDisplay">Weapon: Pistol</div>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="script.js"></script>
 </body>
