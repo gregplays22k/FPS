@@ -1,3 +1,4 @@
+// Set up Three.js scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
@@ -8,19 +9,27 @@ document.body.appendChild(renderer.domElement);
 let player = new THREE.Object3D();
 scene.add(player);
 
-let pitchObject = new THREE.Object3D(); // Handles up/down rotation
+let pitchObject = new THREE.Object3D();
 pitchObject.add(camera);
 player.add(pitchObject);
 
-camera.position.set(0, 1.6, 0); // Camera height
+camera.position.set(0, 1.6, 0);
 
 // Floor
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(100, 100),
-  new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide })
+  new THREE.MeshStandardMaterial({ color: 0x228B22, roughness: 1 })
 );
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
+
+// Lights
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
+scene.add(light);
+
+const ambientLight = new THREE.AmbientLight(0x404040);
+scene.add(ambientLight);
 
 // Weapons
 let weapons = [];
@@ -30,7 +39,7 @@ const weaponDisplay = document.getElementById("weaponDisplay");
 function createGun(color, size, positionZ) {
   let gun = new THREE.Mesh(
     new THREE.BoxGeometry(size.x, size.y, size.z),
-    new THREE.MeshBasicMaterial({ color: color })
+    new THREE.MeshStandardMaterial({ color: color, metalness: 0.5, roughness: 0.3 })
   );
   gun.position.set(0.2, -0.3, positionZ);
   camera.add(gun);
@@ -67,6 +76,7 @@ let keys = { forward: false, backward: false, left: false, right: false };
 let bullets = [];
 let enemyBullets = [];
 
+// Handle movement keys
 document.addEventListener('keydown', (event) => {
   if (event.key === 'w') keys.forward = true;
   if (event.key === 's') keys.backward = true;
@@ -84,7 +94,7 @@ document.addEventListener('keyup', (event) => {
   if (event.key === 'd') keys.right = false;
 });
 
-// Mouse Look and Turning
+// Mouse Look
 document.addEventListener('click', () => {
   document.body.requestPointerLock();
 });
@@ -92,24 +102,13 @@ document.addEventListener('click', () => {
 document.addEventListener('mousemove', (event) => {
   if (document.pointerLockElement === document.body) {
     let sensitivity = 0.002;
-
-    // Rotate the player (Yaw - Turning left/right)
     player.rotation.y -= event.movementX * sensitivity;
-
-    // Rotate the camera (Pitch - Looking up/down)
     pitchObject.rotation.x -= event.movementY * sensitivity;
     pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x));
   }
 });
 
-// Create a bullet that stays with the player until shot
-let heldBullet = new THREE.Mesh(
-  new THREE.SphereGeometry(0.1, 8, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffff00 })
-);
-heldBullet.position.set(0.3, -0.2, -0.5); // Position near the gun
-camera.add(heldBullet);
-
+// Shooting
 document.addEventListener('click', () => {
   if (document.pointerLockElement === document.body) {
     shoot();
@@ -117,34 +116,24 @@ document.addEventListener('click', () => {
 });
 
 function shoot() {
-  if (!heldBullet) return; // Ensure we have a bullet to shoot
-
-  // Detach the bullet from the camera and shoot it
-  camera.remove(heldBullet);
-  scene.add(heldBullet);
-
+  let bullet = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffaa00 })
+  );
+  bullet.position.copy(camera.position);
   let direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
-
-  let bulletSpeed = currentWeaponIndex === 0 ? 0.5 : currentWeaponIndex === 1 ? 0.7 : 0.3;
-  heldBullet.velocity = direction.multiplyScalar(bulletSpeed);
-  bullets.push(heldBullet);
-
-  // Create a new bullet for holding
-  heldBullet = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffff00 })
-  );
-  heldBullet.position.set(0.3, -0.2, -0.5);
-  camera.add(heldBullet);
+  bullet.velocity = direction.multiplyScalar(1);
+  bullets.push(bullet);
+  scene.add(bullet);
 }
 
 // Enemies
 let enemies = [];
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < 5; i++) {
   let enemy = new THREE.Mesh(
     new THREE.BoxGeometry(1, 2, 1),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 1 })
   );
   enemy.position.set(Math.random() * 20 - 10, 1, Math.random() * 20 - 10);
   enemy.health = 3;
@@ -164,9 +153,9 @@ function enemyAI() {
     if (distance < 10 && Math.random() < 0.02) {
       let enemyBullet = new THREE.Mesh(
         new THREE.SphereGeometry(0.1, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        new THREE.MeshStandardMaterial({ color: 0xff0000 })
       );
-      enemyBullet.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
+      enemyBullet.position.copy(enemy.position);
       let bulletDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
       enemyBullet.velocity = bulletDirection.multiplyScalar(0.3);
       enemyBullets.push(enemyBullet);
@@ -188,6 +177,20 @@ function updateBullets() {
         }
       }
     });
+  });
+
+  enemyBullets.forEach((bullet, index) => {
+    bullet.position.add(bullet.velocity);
+    if (bullet.position.distanceTo(player.position) < 1) {
+      playerHealth -= 10;
+      scene.remove(bullet);
+      enemyBullets.splice(index, 1);
+      updateHealthDisplay();
+      if (playerHealth <= 0) {
+        alert("Game Over! You died.");
+        location.reload();
+      }
+    }
   });
 }
 
