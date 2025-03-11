@@ -1,19 +1,15 @@
-body, html {
+body {
   margin: 0;
-  padding: 0;
   overflow: hidden;
-  height: 100%;
-  width: 100%;
 }
 
-#gameContainer {
+#weaponDisplay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-canvas {
-  display: block;
+  bottom: 20px;
+  left: 20px;
+  color: white;
+  font-size: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 5px;
 }
