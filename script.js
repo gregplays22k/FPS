@@ -80,11 +80,26 @@ document.addEventListener('keyup', (event) => {
   if (event.key === 'd') keys.right = false;
 });
 
+// Mouse Look
+let pitchObject = new THREE.Object3D();
+pitchObject.add(camera);
+player.add(pitchObject);
+
 document.addEventListener('click', () => {
   document.body.requestPointerLock();
   shoot();
 });
 
+document.addEventListener('mousemove', (event) => {
+  if (document.pointerLockElement === document.body) {
+    let sensitivity = 0.002;
+    player.rotation.y -= event.movementX * sensitivity; // Yaw rotation
+    pitchObject.rotation.x -= event.movementY * sensitivity; // Pitch rotation
+    pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitchObject.rotation.x)); // Limit vertical look
+  }
+});
+
+// Shooting
 function shoot() {
   let bullet = new THREE.Mesh(
     new THREE.SphereGeometry(0.1, 8, 8),
