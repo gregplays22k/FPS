@@ -27,9 +27,7 @@ scene.add(floor);
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 5);
 scene.add(light);
-
-const ambientLight = new THREE.AmbientLight(0x404040);
-scene.add(ambientLight);
+scene.add(new THREE.AmbientLight(0x404040));
 
 // Weapons
 let weapons = [];
@@ -71,6 +69,8 @@ function updateHealthDisplay() {
   healthDisplay.innerText = `Health: ${playerHealth}`;
 }
 
+updateHealthDisplay();
+
 // Player Controls
 let keys = { forward: false, backward: false, left: false, right: false };
 let bullets = [];
@@ -109,11 +109,7 @@ document.addEventListener('mousemove', (event) => {
 });
 
 // Shooting
-document.addEventListener('click', () => {
-  if (document.pointerLockElement === document.body) {
-    shoot();
-  }
-});
+document.addEventListener('click', shoot);
 
 function shoot() {
   let bullet = new THREE.Mesh(
@@ -123,7 +119,7 @@ function shoot() {
   bullet.position.copy(camera.position);
   let direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
-  bullet.velocity = direction.multiplyScalar(1);
+  bullet.velocity = direction.multiplyScalar(2); // Faster bullets
   bullets.push(bullet);
   scene.add(bullet);
 }
@@ -150,14 +146,14 @@ function enemyAI() {
       enemy.position.addScaledVector(playerDirection, 0.02);
     }
 
-    if (distance < 10 && Math.random() < 0.02) {
+    if (distance < 10 && Math.random() < 0.05) {
       let enemyBullet = new THREE.Mesh(
         new THREE.SphereGeometry(0.1, 8, 8),
         new THREE.MeshStandardMaterial({ color: 0xff0000 })
       );
       enemyBullet.position.copy(enemy.position);
       let bulletDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
-      enemyBullet.velocity = bulletDirection.multiplyScalar(0.3);
+      enemyBullet.velocity = bulletDirection.multiplyScalar(1.5); // Increased speed
       enemyBullets.push(enemyBullet);
       scene.add(enemyBullet);
     }
@@ -174,6 +170,7 @@ function updateBullets() {
         bullets.splice(index, 1);
         if (enemy.health <= 0) {
           scene.remove(enemy);
+          enemies.splice(enemies.indexOf(enemy), 1);
         }
       }
     });
