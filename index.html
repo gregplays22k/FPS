@@ -4,11 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FPS</title>
+    <style>
+        /* Ensure the body takes up the entire screen */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column; /* Allow stacking content vertically */
+            background-color: #f0f0f0; /* Light background color */
+        }
+
+        /* Style for the fullscreen button */
+        #fullscreenButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        #fullscreenButton:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello, welcome to my app!</h1>
+    <h1>FPS</h1>
+    <button id="fullscreenButton">Go Fullscreen</button>
 
     <!-- Link to the external JavaScript file -->
     <script src="app.js"></script>
 </body>
 </html>
+
