@@ -81,7 +81,6 @@ let keys = { forward: false, backward: false, left: false, right: false };
 let bullets = [];
 let enemyBullets = [];
 
-// Handle movement keys
 document.addEventListener('keydown', (event) => {
   if (event.key === 'w') keys.forward = true;
   if (event.key === 's') keys.backward = true;
@@ -99,9 +98,9 @@ document.addEventListener('keyup', (event) => {
   if (event.key === 'd') keys.right = false;
 });
 
-// Mouse Look
 document.addEventListener('click', () => {
   document.body.requestPointerLock();
+  shoot();
 });
 
 document.addEventListener('mousemove', (event) => {
@@ -113,13 +112,9 @@ document.addEventListener('mousemove', (event) => {
   }
 });
 
-// Shooting with Gun Animation
-document.addEventListener('click', shoot);
-
 function shoot() {
   let gun = weapons[currentWeaponIndex];
 
-  // Gun recoil animation
   gsap.to(gun.position, { z: gun.position.z - 0.2, duration: 0.1, yoyo: true, repeat: 1 });
 
   let bullet = new THREE.Mesh(
@@ -134,77 +129,6 @@ function shoot() {
   scene.add(bullet);
 }
 
-// Enemies as Sprites
-let enemies = [];
-const enemyTexture = new THREE.TextureLoader().load("enemy.png"); // Load your enemy sprite
-
-for (let i = 0; i < 5; i++) {
-  let enemyMaterial = new THREE.SpriteMaterial({ map: enemyTexture });
-  let enemy = new THREE.Sprite(enemyMaterial);
-  enemy.scale.set(2, 3, 1);
-  enemy.position.set(Math.random() * 20 - 10, 1, Math.random() * 20 - 10);
-  enemy.health = 3;
-  enemies.push(enemy);
-  scene.add(enemy);
-}
-
-function enemyAI() {
-  enemies.forEach(enemy => {
-    let playerDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
-    let distance = enemy.position.distanceTo(player.position);
-
-    if (distance > 3) {
-      enemy.position.addScaledVector(playerDirection, 0.02);
-    }
-
-    if (distance < 10 && Math.random() < 0.05) {
-      let enemyBullet = new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xff0000 })
-      );
-      enemyBullet.position.copy(enemy.position);
-      let bulletDirection = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
-      enemyBullet.velocity = bulletDirection.multiplyScalar(1.5);
-      enemyBullets.push(enemyBullet);
-      scene.add(enemyBullet);
-    }
-
-    // Ensure enemy always faces the player
-    enemy.lookAt(player.position);
-  });
-}
-
-function updateBullets() {
-  bullets.forEach((bullet, index) => {
-    bullet.position.add(bullet.velocity);
-    enemies.forEach(enemy => {
-      if (bullet.position.distanceTo(enemy.position) < 1) {
-        enemy.health -= 1;
-        scene.remove(bullet);
-        bullets.splice(index, 1);
-        if (enemy.health <= 0) {
-          scene.remove(enemy);
-          enemies.splice(enemies.indexOf(enemy), 1);
-        }
-      }
-    });
-  });
-
-  enemyBullets.forEach((bullet, index) => {
-    bullet.position.add(bullet.velocity);
-    if (bullet.position.distanceTo(player.position) < 1) {
-      playerHealth -= 10;
-      scene.remove(bullet);
-      enemyBullets.splice(index, 1);
-      updateHealthDisplay();
-      if (playerHealth <= 0) {
-        alert("Game Over! You died.");
-        location.reload();
-      }
-    }
-  });
-}
-
 function animate() {
   requestAnimationFrame(animate);
 
@@ -213,8 +137,7 @@ function animate() {
   if (keys.left) player.translateX(-0.1);
   if (keys.right) player.translateX(0.1);
 
-  enemyAI();
-  updateBullets();
+  bullets.forEach((bullet) => bullet.position.add(bullet.velocity));
   renderer.render(scene, camera);
 }
 
