@@ -172,8 +172,16 @@
       });
     }
 
+    // Update function to move enemies towards the player
+    function updateEnemies() {
+      enemies.forEach((enemy) => {
+        let direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+        enemy.position.add(direction.multiplyScalar(0.05)); // Adjust speed as needed
+      });
+    }
+
     // Enemy AI with slower fire rate
-    let enemyFireRate = 5000; // Fire every 5 seconds
+    let enemyFireRate = 2000; // Fire every 2 seconds
 
     function enemyShoot(enemy) {
       setInterval(() => {
@@ -185,7 +193,7 @@
         enemyBullet.position.copy(enemy.position);
         let direction = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
         enemyBullet.velocity = direction.multiplyScalar(0.5);
-        enemyBullets.push(enemyBullet);
+        stickyBullets.push(enemyBullet); // Add to sticky bullets array
         scene.add(enemyBullet);
       }, enemyFireRate);
     }
@@ -222,24 +230,5 @@
       if (keys.right) player.translateX(0.1);
 
       if (!invincible) {
-        stickyBullets.forEach((bullet) => {
-          if (bullet.position.distanceTo(player.position) < 1) {
-            playerHealth -= 10;
-            updateHealthDisplay();
-            if (playerHealth <= 0) {
-              alert("Game Over");
-              window.location.reload();
-            }
-          }
-        });
-      }
-
-      updateBullets();
-      renderer.render(scene, camera);
-      requestAnimationFrame(update);
-    }
-
-    update();
-  </script>
-</body>
-</html>
+        stickyBullets.forEach((bullet, index) => {
+          let direction = new THREE.Vector3().subVectors(player.position, bullet.position
